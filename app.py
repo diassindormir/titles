@@ -181,14 +181,13 @@ def procesar_idioma(texto_origen: str, lang_origen: str, lang_salida: str):
         base = limpiar(base, lang_salida)
     base = capitalizar(base, lang_salida)
     titulo, highlight, sobrante = dividir(base)
-       suf = lang_salida.upper()
+    suf = lang_salida.upper()
     return {
         f"titulo_{suf}": titulo,
         f"len_titulo_{suf}": len(titulo),
         f"highlight_{suf}": highlight,
         f"len_highlight_{suf}": len(highlight),
         f"sobrante_{suf}": sobrante,
-        f"highlight_incompleto_{suf}": "SÍ" if sobrante else "",   # ← nueva columna
         f"revisar_{suf}": "SÍ" if sobrante else "",
     }
 
