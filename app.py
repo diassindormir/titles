@@ -17,10 +17,8 @@ IDIOMAS = {
     "Alemán (DE)": "de",
 }
 
-# Marca(s) que SIEMPRE deben ir al principio y sin traducir
 MARCAS_INICIO = {"cecotec"}
 
-# Términos de marca/gama/modelo que NO deben traducirse
 NO_TRADUCIR = {
     "cecotec",
     "bolero",
@@ -34,9 +32,10 @@ NO_TRADUCIR = {
     "green",
     "hub",
     "capri",
+    "airflow",
+    "multi",
 }
 
-# Casing fijo para términos comerciales/técnicos
 CASING_FIJO = {
     "cecotec": "Cecotec",
     "bolero": "Bolero",
@@ -53,22 +52,47 @@ CASING_FIJO = {
     "white": "White",
     "glass": "Glass",
     "black": "Black",
+    "dark": "Dark",
+    "airflow": "AirFlow",
+    "multi": "Multi",
+    "alto": "Alto",
+    "alta": "Alta",
+    "altura": "Altura",
+    "ancho": "Ancho",
+    "ancha": "Ancha",
+    "profundo": "Profundo",
+    "profunda": "Profunda",
+    "profundidad": "Profundidad",
+    "sistema": "Sistema",
+    "compresor": "Compresor",
+    "motor": "Motor",
+    "modo": "Modo",
+    "inteligente": "Inteligente",
+    "cajón": "Cajón",
+    "cajon": "Cajón",
+    "cajones": "Cajones",
     "l": "L",
     "v": "V",
+    "w": "W",
+    "kw": "kW",
     "cm": "cm",
+    "mm": "mm",
+    "kg": "kg",
+    "g": "g",
     "ºc": "ºC",
     "°c": "°C",
 }
 
-UNIDADES_PROTEGIDAS = {"l", "v", "w", "kw", "cm", "mm", "m", "kg", "g", "ºc", "°c"}
+UNIDADES_PROTEGIDAS = {
+    "l", "v", "w", "kw", "cm", "mm", "m", "kg", "g", "ºc", "°c"
+}
 
 MENORES = {
     "es": {
         "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
         "lo", "y", "e", "o", "u", "a", "al", "ante", "bajo", "con",
         "contra", "desde", "durante", "en", "entre", "hacia", "hasta",
-        "para", "por", "según", "sin", "sobre", "tras", "que", "su", "sus",
-        "alto", "alta", "ancho", "ancha", "profundo", "profunda"
+        "para", "por", "según", "sin", "sobre", "tras", "que", "su", "sus"
     },
     "fr": {
         "le", "la", "les", "un", "une", "des", "de", "du", "d", "l", "et",
@@ -107,7 +131,7 @@ PROHIBIDOS = {
 }
 
 
-# ─────────── PATRONES IMPORTANTES ───────────
+# ─────────── PATRONES ───────────
 
 PATRON_VOLT_MULTIPLE = re.compile(
     r"\b(?:funciona|fonctionne|funziona|funktioniert|works|operates)"
@@ -127,8 +151,9 @@ PATRON_LITROS = re.compile(
     flags=re.IGNORECASE
 )
 
-PATRON_CM = re.compile(
-    r"\b\d+(?:[,.]\d+)?\s*cm(?:\s+(?:alto|alta|ancho|ancha|profundo|profunda))?\b",
+PATRON_DIMENSION = re.compile(
+    r"\b(?:Alto|Alta|Altura|Ancho|Ancha|Profundo|Profunda|Profundidad)"
+    r"\s+\d+(?:[,.]\d+)?\s*cm\b",
     flags=re.IGNORECASE
 )
 
@@ -138,9 +163,75 @@ PATRON_CLASE = re.compile(
 )
 
 PATRON_TECNOLOGIA_CORTA = re.compile(
-    r"\b(?:Total\s+)?NoFrost\b|\bMotor\s+Inverter\b|\bInverter\b",
+    r"\b(?:Total\s+)?NoFrost\b"
+    r"|\bMotor\s+Inverter\b"
+    r"|\bCompresor\s+Inverter\b"
+    r"|\bInverter\b"
+    r"|\bSistema\s+Multi\s+AirFlow\b"
+    r"|\bMulti\s+AirFlow\b"
+    r"|\bModo\s+Inteligente\b",
     flags=re.IGNORECASE
 )
+
+
+# ─────────── UTILIDADES DE TOKENS ───────────
+
+def base_token(token: str) -> str:
+    return token.strip(".,;:()\"'")
+
+
+def reemplazar_base_token(token: str, nuevo: str) -> str:
+    base = base_token(token)
+    if not base:
+        return token
+    return token.replace(base, nuevo, 1)
+
+
+def siguiente_token_base(tokens: list, idx: int) -> str:
+    if idx + 1 >= len(tokens):
+        return ""
+    return base_token(tokens[idx + 1])
+
+
+def anterior_token_base(tokens: list, idx: int) -> str:
+    if idx - 1 < 0:
+        return ""
+    return base_token(tokens[idx - 1])
+
+
+def es_letra_modelo_una_letra(tokens: list, idx: int) -> bool:
+    """
+    Detecta letras de modelo o clase como:
+    - Dark E, 409 L
+    - White Glass C, 409 L
+    - Clase C
+
+    Evita que 'E' se convierta en 'e' aunque 'e' sea conjunción en español.
+    """
+
+    actual = base_token(tokens[idx])
+
+    if len(actual) != 1 or not actual.isalpha():
+        return False
+
+    previo = anterior_token_base(tokens, idx)
+    siguiente = siguiente_token_base(tokens, idx)
+
+    previo_low = previo.lower()
+
+    # Clase energética: Clase C, Classe C, Klasse C, etc.
+    if previo_low in {"clase", "classe", "class", "klasse"}:
+        return True
+
+    # Modelo de una letra seguido de número: E, 409 / C, 409
+    if any(ch.isdigit() for ch in siguiente):
+        return True
+
+    # Modelo de una letra cerca de una referencia numérica
+    if any(ch.isdigit() for ch in previo):
+        return True
+
+    return False
 
 
 # ─────────── LIMPIEZA Y NORMALIZACIÓN ───────────
@@ -156,10 +247,8 @@ def limpiar(texto: str, lang: str) -> str:
     t = t.replace("‘", "'").replace("’", "'")
     t = t.replace("–", "-").replace("—", "-")
 
-    # Normaliza espacios alrededor de guiones
     t = re.sub(r"\s*-\s*", " - ", t)
 
-    # Conserva caracteres útiles para títulos de producto
     t = re.sub(
         r"[^\w\s\-.,&/+%º°ªÀ-ÿ\"'()]",
         "",
@@ -170,7 +259,6 @@ def limpiar(texto: str, lang: str) -> str:
     for term in PROHIBIDOS.get(lang, []):
         t = re.sub(rf"\b{re.escape(term)}\b", "", t, flags=re.IGNORECASE)
 
-    # Quita palabras duplicadas consecutivas
     t = re.sub(r"\b(\w+)(\s+\1\b)+", r"\1", t, flags=re.IGNORECASE)
 
     t = re.sub(r"\s+", " ", t).strip()
@@ -182,12 +270,15 @@ def limpiar(texto: str, lang: str) -> str:
 
 def normalizar_puntos_separadores(texto: str) -> str:
     """
-    Cambia puntos de separación por comas.
-    Ejemplo:
-    'Capri Black. Funciona a 12V' -> 'Capri Black, Funciona a 12V'
+    Cambia puntos separadores por comas.
 
-    No cambia abreviaturas/modelos tipo:
-    'C. 409 L'
+    Ejemplos:
+    - Capri Black. Funciona a 12V -> Capri Black, Funciona a 12V
+    - Dark E. 409 L -> Dark E, 409 L
+    - White Glass C. 409 L -> White Glass C, 409 L
+
+    No cambia puntos decimales:
+    - 4.5 L se conserva como 4.5 L
     """
 
     if not texto:
@@ -200,23 +291,31 @@ def normalizar_puntos_separadores(texto: str) -> str:
         ch = texto[i]
 
         if ch == ".":
+            prev_char = texto[i - 1] if i > 0 else ""
+            next_char_direct = texto[i + 1] if i + 1 < len(texto) else ""
+
+            # No convertir puntos decimales: 4.5
+            if prev_char.isdigit() and next_char_direct.isdigit():
+                out.append(ch)
+                i += 1
+                continue
+
             j = i + 1
             while j < len(texto) and texto[j].isspace():
                 j += 1
 
-            previo = "".join(out).rstrip()
-            m_prev = re.search(r"(\S+)$", previo)
-            token_previo = m_prev.group(1).strip("()\"'") if m_prev else ""
+            siguiente_existe = j < len(texto)
+            siguiente_char = texto[j] if siguiente_existe else ""
 
-            siguiente_es_inicio_frase = (
-                j < len(texto)
-                and re.match(r"[A-ZÁÉÍÓÚÜÑÀ-Ý0-9]", texto[j]) is not None
+            siguiente_es_inicio = (
+                siguiente_existe
+                and re.match(
+                    r"[A-Za-zÁÉÍÓÚÜÑáéíóúüñÀ-ÿ0-9]",
+                    siguiente_char
+                ) is not None
             )
 
-            # No tocar abreviaturas/modelos de una sola letra tipo "C. 409"
-            abreviatura_modelo = re.fullmatch(r"[A-ZÁÉÍÓÚÜÑÀ-Ý]", token_previo) is not None
-
-            if siguiente_es_inicio_frase and not abreviatura_modelo:
+            if siguiente_es_inicio:
                 out.append(", ")
                 i = j
                 continue
@@ -240,7 +339,9 @@ def normalizar_semantica(texto: str, lang: str) -> str:
     - 409 Litros -> 409 L
     - 12 V -> 12V
     - Rango de 7 a 50 Grados -> 7-50 ºC
-    - Black. Funciona -> Black, Funciona
+    - Capri Black. Funciona -> Capri Black, Funciona
+    - Dark E. 409 L -> Dark E, 409 L
+    - Altura 184,6 cm -> Alto 184,6 cm
 
     No:
     - Funciona a 12V y 220V -> 12V y 220V
@@ -251,7 +352,8 @@ def normalizar_semantica(texto: str, lang: str) -> str:
 
     t = texto
 
-    # Puntos de separación como comas
+    # Puntos separadores a comas, incluidos modelos de una letra:
+    # E. 409 L -> E, 409 L
     t = normalizar_puntos_separadores(t)
 
     # Corrección habitual en traducciones tipo "Mini - Réfrigérateur"
@@ -271,12 +373,21 @@ def normalizar_semantica(texto: str, lang: str) -> str:
     )
 
     # MiniCooling 4 L -> MiniCooling 4L
-    # Solo une cantidades pequeñas para evitar convertir 409 L en 409L.
-    t = re.sub(r"\b(\d{1,2})\s+L\b", r"\1L", t, flags=re.IGNORECASE)
+    # Solo une cantidades pequeñas para evitar 409 L -> 409L.
+    t = re.sub(
+        r"\b(\d{1,2})\s+L\b",
+        r"\1L",
+        t,
+        flags=re.IGNORECASE
+    )
 
-    # Normaliza voltaje: 12 V -> 12V
-    # Importante: NO elimina 'Funciona a'
-    t = re.sub(r"\b(\d+)\s*V\b", r"\1V", t, flags=re.IGNORECASE)
+    # 12 V -> 12V, pero NO elimina "Funciona a"
+    t = re.sub(
+        r"\b(\d+)\s*V\b",
+        r"\1V",
+        t,
+        flags=re.IGNORECASE
+    )
 
     # Rango de 7 a 50 Grados -> 7-50 ºC
     t = re.sub(
@@ -290,22 +401,27 @@ def normalizar_semantica(texto: str, lang: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # Altura / Ancho / Profundidad compactos
+    # Dimensiones:
+    # Altura 184,6 cm -> Alto 184,6 cm
+    # Ancho 59,5 cm -> Ancho 59,5 cm
+    # Profundidad 65 cm -> Profundo 65 cm
     t = re.sub(
         r"\bAltura\s+(\d+(?:[,.]\d+)?\s*cm)\b",
-        r"\1 alto",
+        r"Alto \1",
         t,
         flags=re.IGNORECASE
     )
+
     t = re.sub(
         r"\bAncho\s+(\d+(?:[,.]\d+)?\s*cm)\b",
-        r"\1 ancho",
+        r"Ancho \1",
         t,
         flags=re.IGNORECASE
     )
+
     t = re.sub(
         r"\bProfundidad\s+(\d+(?:[,.]\d+)?\s*cm)\b",
-        r"\1 profundo",
+        r"Profundo \1",
         t,
         flags=re.IGNORECASE
     )
@@ -330,7 +446,6 @@ def reducir_si_no_cabe(texto: str, limite: int, lang: str) -> str:
         return t
 
     reglas = [
-        # Si ya aparece Combi como modelo, se puede reducir el tipo largo.
         (r"\bRéfrigérateur Combiné\s+(?=.*\bCombi\b)", "Réfrigérateur "),
         (r"\bFrigorífico Combi\s+(?=.*\bCombi\b)", "Frigorífico "),
         (r"\bFrigorifero Combinato\s+(?=.*\bCombi\b)", "Frigorifero "),
@@ -348,40 +463,72 @@ def reducir_si_no_cabe(texto: str, limite: int, lang: str) -> str:
 
 
 def aplicar_casing_fijo(palabra: str) -> str:
-    base = palabra.strip(".,;:()\"'")
+    base = base_token(palabra)
     if not base:
         return palabra
 
     low = base.lower()
+
     if low not in CASING_FIJO:
         return palabra
 
-    return palabra.replace(base, CASING_FIJO[low], 1)
+    return reemplazar_base_token(palabra, CASING_FIJO[low])
 
 
 def capitalizar(texto: str, lang: str) -> str:
+    """
+    Capitalización con protección de:
+    - marcas/modelos
+    - unidades
+    - letras de modelo de una sola letra: E, C, etc.
+    - clases energéticas: Clase C
+    """
+
+    if not texto:
+        return ""
+
     menores = MENORES.get(lang, set())
+    tokens = texto.split()
     out = []
 
-    for idx, w in enumerate(texto.split()):
+    for idx, w in enumerate(tokens):
+        base = base_token(w)
+        low = base.lower()
+
+        if not base:
+            out.append(w)
+            continue
+
+        # 1. Casing comercial/técnico fijo
         fijo = aplicar_casing_fijo(w)
         if fijo != w:
             out.append(fijo)
             continue
 
-        base = w.strip(".,;:()\"'")
-        low = base.lower()
+        # 2. Letras de modelo/clase de una sola letra:
+        # Dark E, 409 L / White Glass C, 409 L / Clase C
+        if es_letra_modelo_una_letra(tokens, idx):
+            out.append(reemplazar_base_token(w, base.upper()))
+            continue
 
-        if low in CASING_FIJO:
-            out.append(w.replace(base, CASING_FIJO[low], 1))
-        elif low in UNIDADES_PROTEGIDAS:
+        # 3. Unidades protegidas
+        if low in UNIDADES_PROTEGIDAS:
             out.append(w)
-        elif (len(base) > 1 and base.isupper()) or any(c.isdigit() for c in base):
+            continue
+
+        # 4. Siglas o tokens con números
+        if base.isupper() or any(c.isdigit() for c in base):
             out.append(w)
-        elif idx != 0 and low in menores:
-            out.append(w.lower())
-        else:
-            out.append(w[:1].upper() + w[1:])
+            continue
+
+        # 5. Palabras menores
+        # Importante: una 'E' de modelo no llega aquí porque queda protegida arriba.
+        if idx != 0 and low in menores:
+            out.append(reemplazar_base_token(w, low))
+            continue
+
+        # 6. Capitalización normal
+        out.append(reemplazar_base_token(w, base[:1].upper() + base[1:]))
 
     return " ".join(out)
 
@@ -404,14 +551,13 @@ def proteger(texto: str):
     c = 0
 
     for tok in texto.split():
-        base = tok.strip(".,;:()\"'")
+        base = base_token(tok)
         base_low = base.lower()
 
         debe_proteger = (
             base_low in NO_TRADUCIR
             or base_low in UNIDADES_PROTEGIDAS
-            or (len(base) > 1 and base.isupper())
-            or (len(base) == 1 and base.isupper())
+            or base.isupper()
             or any(ch.isdigit() for ch in base)
         )
 
@@ -458,7 +604,7 @@ def traducir_protegido(texto: str, origen: str, destino: str) -> str:
 def dividir_bloques_semanticos(titulo: str):
     """
     Divide por comas.
-    Los puntos de separación ya se han convertido antes a comas.
+    Los puntos separadores ya se convierten antes a comas.
     """
 
     if not titulo:
@@ -479,7 +625,7 @@ def dividir_bloques_semanticos(titulo: str):
 
 def cola_incompleta(texto: str, lang: str) -> str:
     """
-    Evita que el título termine en conectores, preposiciones o abreviaturas colgadas.
+    Evita que el título termine en conectores, preposiciones o tokens colgados.
     """
 
     if not texto:
@@ -490,13 +636,8 @@ def cola_incompleta(texto: str, lang: str) -> str:
 
     while palabras:
         ultima_limpia = palabras[-1].strip(".,;:").lower()
-        ultima_original = palabras[-1].strip()
 
         if ultima_limpia in menores:
-            palabras.pop()
-            continue
-
-        if re.fullmatch(r"[A-ZÁÉÍÓÚÜÑÀ-Ý]\.", ultima_original):
             palabras.pop()
             continue
 
@@ -527,7 +668,6 @@ def cortar_palabras(texto: str, limite: int, lang: str):
     texto_total = " ".join(palabras)
     corte = len(part)
 
-    # Evita cortes dentro de frases tipo "Funciona a 12V y 220V"
     for m in PATRON_VOLT_MULTIPLE.finditer(texto_total):
         if m.start() < corte < m.end():
             part = texto_total[:m.start()].strip(" ,.")
@@ -549,7 +689,6 @@ def _rellenar_secuencial(part: str, bloques: list, limite: int, lang: str):
     TÍTULO:
     Añade bloques en orden.
     Si el primer bloque que toca no cabe, se detiene.
-    Después, otra función intentará rellenar huecos con specs cortas.
     """
 
     restantes = []
@@ -599,19 +738,14 @@ def _rellenar(part: str, bloques: list, limite: int, lang: str):
 # ─────────── RELLENO INTELIGENTE DEL TÍTULO ───────────
 
 def es_relleno_valido_titulo(fragmento: str) -> bool:
-    """
-    Determina si un fragmento corto es suficientemente relevante
-    como para subirlo al título aunque venga más adelante.
-    """
-
     f = fragmento.strip(" ,.")
+
     if not f:
         return False
 
     if len(f) > 35:
         return False
 
-    # Frases críticas de voltaje: solo se permiten completas.
     if PATRON_VOLT_MULTIPLE.search(f):
         return True
 
@@ -619,14 +753,12 @@ def es_relleno_valido_titulo(fragmento: str) -> bool:
         PATRON_TEMP,
         PATRON_CLASE,
         PATRON_TECNOLOGIA_CORTA,
-        PATRON_CM,
+        PATRON_DIMENSION,
     ]
 
     if any(p.search(f) for p in patrones_relevantes):
         return True
 
-    # Litros: solo si no es redundante con el modelo principal.
-    # Ejemplo: "409 L" suele ir ya en el primer bloque, pero puede ser útil en otros casos.
     if PATRON_LITROS.search(f):
         return True
 
@@ -635,12 +767,7 @@ def es_relleno_valido_titulo(fragmento: str) -> bool:
 
 def candidatos_relleno_desde_bloque(bloque: str, lang: str):
     """
-    Extrae candidatos cortos y relevantes de un bloque.
-    Ejemplo:
-    - '7-50 ºC'
-    - 'Clase C'
-    - 'Total NoFrost'
-    - 'Motor Inverter'
+    Extrae candidatos breves y relevantes de un bloque.
     """
 
     b = normalizar_semantica(bloque, lang).strip(" ,.")
@@ -649,6 +776,7 @@ def candidatos_relleno_desde_bloque(bloque: str, lang: str):
     def add(valor: str):
         valor = normalizar_semantica(valor, lang).strip(" ,.")
         valor = capitalizar(valor, lang)
+
         if valor and valor not in candidatos and es_relleno_valido_titulo(valor):
             candidatos.append(valor)
 
@@ -671,8 +799,8 @@ def candidatos_relleno_desde_bloque(bloque: str, lang: str):
     for m in PATRON_TECNOLOGIA_CORTA.finditer(b):
         add(m.group(0))
 
-    # Dimensiones cortas
-    for m in PATRON_CM.finditer(b):
+    # Dimensiones
+    for m in PATRON_DIMENSION.finditer(b):
         add(m.group(0))
 
     # Litros
@@ -710,12 +838,6 @@ def _rellenar_oportunista_titulo(part: str, bloques: list, limite: int, lang: st
     """
     Si el título queda corto, busca en los bloques restantes una especificación breve
     que quepa dentro de los 75 caracteres.
-
-    Ejemplo:
-    Título: 'Cecotec Mini Frigorífico Bolero MiniCooling 4L Capri Black'
-    Resto: 'Funciona a 12V y 220V, ..., 7-50 ºC'
-    Resultado:
-    'Cecotec Mini Frigorífico Bolero MiniCooling 4L Capri Black, 7-50 ºC'
     """
 
     if not part:
@@ -765,7 +887,6 @@ def dividir(titulo: str, lang: str):
     if not bloques:
         return "", "", ""
 
-    # TÍTULO: primer bloque en orden estricto
     primer_bloque = normalizar_semantica(bloques[0], lang)
     primer_bloque = reducir_si_no_cabe(primer_bloque, MAX_TITULO, lang)
 
@@ -776,7 +897,7 @@ def dividir(titulo: str, lang: str):
         titulo_part, sobra = cortar_palabras(primer_bloque, MAX_TITULO, lang)
         resto = ([sobra] if sobra else []) + bloques[1:]
 
-    # Primero relleno secuencial normal
+    # Relleno secuencial normal
     titulo_part, resto = _rellenar_secuencial(
         titulo_part,
         resto,
@@ -784,7 +905,7 @@ def dividir(titulo: str, lang: str):
         lang
     )
 
-    # Después relleno oportunista con specs cortas del resto
+    # Relleno oportunista con specs breves
     titulo_part, resto = _rellenar_oportunista_titulo(
         titulo_part,
         resto,
@@ -792,7 +913,7 @@ def dividir(titulo: str, lang: str):
         lang
     )
 
-    # HIGHLIGHT
+    # Highlight
     highlight_part, resto = _rellenar(
         "",
         resto,
