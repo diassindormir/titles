@@ -4,7 +4,6 @@ import pandas as pd
 import streamlit as st
 from deep_translator import GoogleTranslator
 
-
 # ─────────── CONFIGURACIÓN ───────────
 
 MAX_TITULO = 75
@@ -15,15 +14,21 @@ IDIOMAS = {
     "Francés (FR)": "fr",
     "Italiano (IT)": "it",
     "Alemán (DE)": "de",
+    "Inglés (EN)": "en",
 }
 
 MARCAS_INICIO = {"cecotec"}
 
 NO_TRADUCIR = {
+    # Marca
     "cecotec",
+
+    # Gamas / familias
     "bolero",
     "coolmarket",
     "minicooling",
+
+    # Tecnologías / nombres comerciales
     "nofrost",
     "totalnofrost",
     "inverter",
@@ -31,9 +36,40 @@ NO_TRADUCIR = {
     "flex",
     "green",
     "hub",
-    "capri",
     "airflow",
     "multi",
+
+    # Sufijos de modelo / colores comerciales que deben mantenerse en inglés
+    "white",
+    "black",
+    "dark",
+    "glass",
+    "steel",
+    "inox",
+    "silver",
+    "grey",
+    "gray",
+    "cream",
+    "beige",
+    "red",
+    "blue",
+    "titanium",
+    "anthracite",
+    "mirror",
+    "wood",
+    "stone",
+    "pearl",
+    "gold",
+    "champagne",
+    "copper",
+    "bronze",
+    "graphite",
+    "platinum",
+    "metal",
+    "metallic",
+
+    # Nombres de acabado/modelo frecuentes
+    "capri",
 }
 
 CASING_FIJO = {
@@ -49,12 +85,39 @@ CASING_FIJO = {
     "green": "Green",
     "hub": "Hub",
     "capri": "Capri",
+
     "white": "White",
     "glass": "Glass",
     "black": "Black",
     "dark": "Dark",
+    "steel": "Steel",
+    "inox": "Inox",
+    "silver": "Silver",
+    "grey": "Grey",
+    "gray": "Gray",
+    "cream": "Cream",
+    "beige": "Beige",
+    "red": "Red",
+    "blue": "Blue",
+    "titanium": "Titanium",
+    "anthracite": "Anthracite",
+    "mirror": "Mirror",
+    "wood": "Wood",
+    "stone": "Stone",
+    "pearl": "Pearl",
+    "gold": "Gold",
+    "champagne": "Champagne",
+    "copper": "Copper",
+    "bronze": "Bronze",
+    "graphite": "Graphite",
+    "platinum": "Platinum",
+    "metal": "Metal",
+    "metallic": "Metallic",
+
     "airflow": "AirFlow",
     "multi": "Multi",
+
+    # ES
     "alto": "Alto",
     "alta": "Alta",
     "altura": "Altura",
@@ -71,6 +134,21 @@ CASING_FIJO = {
     "cajón": "Cajón",
     "cajon": "Cajón",
     "cajones": "Cajones",
+
+    # EN
+    "height": "Height",
+    "width": "Width",
+    "depth": "Depth",
+    "high": "High",
+    "wide": "Wide",
+    "deep": "Deep",
+    "system": "System",
+    "compressor": "Compressor",
+    "smart": "Smart",
+    "mode": "Mode",
+    "drawer": "Drawer",
+    "drawers": "Drawers",
+
     "l": "L",
     "v": "V",
     "w": "W",
@@ -108,6 +186,11 @@ MENORES = {
         "der", "die", "das", "den", "dem", "ein", "eine", "einen", "und",
         "oder", "mit", "ohne", "für", "von", "zu", "im", "in", "auf", "aus"
     },
+    "en": {
+        "a", "an", "the", "and", "or", "but", "for", "nor", "with",
+        "without", "of", "in", "on", "at", "by", "from", "to", "into",
+        "onto", "over", "under", "as", "per"
+    },
 }
 
 PROHIBIDOS = {
@@ -128,8 +211,120 @@ PROHIBIDOS = {
         "angebot", "gratis", "kostenloser versand", "bester preis",
         "rabatt", "aktion"
     ],
+    "en": [
+        "offer", "offers", "free shipping", "free delivery", "free",
+        "best price", "sale", "discount", "promotion", "promo",
+        "100% original"
+    ],
 }
 
+# Reparación posterior por si el traductor traduce algún acabado/modelo protegido.
+POST_TRADUCCION_MODELO = {
+    "fr": {
+        "foncé": "Dark",
+        "foncee": "Dark",
+        "foncée": "Dark",
+        "sombre": "Dark",
+        "verre": "Glass",
+        "blanc": "White",
+        "blanche": "White",
+        "noir": "Black",
+        "noire": "Black",
+        "acier": "Steel",
+        "inox": "Inox",
+        "argent": "Silver",
+        "gris": "Grey",
+        "grise": "Grey",
+        "crème": "Cream",
+        "creme": "Cream",
+        "beige": "Beige",
+        "rouge": "Red",
+        "bleu": "Blue",
+        "bleue": "Blue",
+        "titane": "Titanium",
+        "anthracite": "Anthracite",
+        "miroir": "Mirror",
+        "bois": "Wood",
+        "pierre": "Stone",
+        "perle": "Pearl",
+        "or": "Gold",
+        "champagne": "Champagne",
+        "cuivre": "Copper",
+        "bronze": "Bronze",
+        "graphite": "Graphite",
+        "platine": "Platinum",
+        "métal": "Metal",
+        "metal": "Metal",
+        "métallique": "Metallic",
+        "metallique": "Metallic",
+    },
+    "it": {
+        "scuro": "Dark",
+        "scura": "Dark",
+        "vetro": "Glass",
+        "bianco": "White",
+        "bianca": "White",
+        "nero": "Black",
+        "nera": "Black",
+        "acciaio": "Steel",
+        "inox": "Inox",
+        "argento": "Silver",
+        "grigio": "Grey",
+        "grigia": "Grey",
+        "crema": "Cream",
+        "beige": "Beige",
+        "rosso": "Red",
+        "rossa": "Red",
+        "blu": "Blue",
+        "titanio": "Titanium",
+        "antracite": "Anthracite",
+        "specchio": "Mirror",
+        "legno": "Wood",
+        "pietra": "Stone",
+        "perla": "Pearl",
+        "oro": "Gold",
+        "champagne": "Champagne",
+        "rame": "Copper",
+        "bronzo": "Bronze",
+        "grafite": "Graphite",
+        "platino": "Platinum",
+        "metallo": "Metal",
+        "metallico": "Metallic",
+        "metallica": "Metallic",
+    },
+    "de": {
+        "dunkel": "Dark",
+        "glas": "Glass",
+        "weiß": "White",
+        "weiss": "White",
+        "schwarz": "Black",
+        "stahl": "Steel",
+        "inox": "Inox",
+        "silber": "Silver",
+        "grau": "Grey",
+        "creme": "Cream",
+        "beige": "Beige",
+        "rot": "Red",
+        "blau": "Blue",
+        "titan": "Titanium",
+        "titanium": "Titanium",
+        "anthrazit": "Anthracite",
+        "spiegel": "Mirror",
+        "holz": "Wood",
+        "stein": "Stone",
+        "perle": "Pearl",
+        "gold": "Gold",
+        "champagner": "Champagne",
+        "champagne": "Champagne",
+        "kupfer": "Copper",
+        "bronze": "Bronze",
+        "graphit": "Graphite",
+        "platin": "Platinum",
+        "metall": "Metal",
+        "metallisch": "Metallic",
+    },
+    "en": {},
+}
 
 # ─────────── PATRONES ───────────
 
@@ -152,33 +347,39 @@ PATRON_LITROS = re.compile(
 )
 
 PATRON_DIMENSION = re.compile(
-    r"\b(?:Alto|Alta|Altura|Ancho|Ancha|Profundo|Profunda|Profundidad)"
+    r"\b(?:Alto|Alta|Altura|Ancho|Ancha|Profundo|Profunda|Profundidad|"
+    r"Height|Width|Depth|High|Wide|Deep)"
     r"\s+\d+(?:[,.]\d+)?\s*cm\b",
     flags=re.IGNORECASE
 )
 
 PATRON_CLASE = re.compile(
-    r"\bClase\s+[A-G]\b",
+    r"\b(?:Clase|Class|Classe|Klasse)\s+[A-G]\b",
     flags=re.IGNORECASE
 )
 
 PATRON_TECNOLOGIA_CORTA = re.compile(
     r"\b(?:Total\s+)?NoFrost\b"
     r"|\bMotor\s+Inverter\b"
+    r"|\bInverter\s+Motor\b"
     r"|\bCompresor\s+Inverter\b"
+    r"|\bInverter\s+Compressor\b"
     r"|\bInverter\b"
     r"|\bSistema\s+Multi\s+AirFlow\b"
+    r"|\bMulti\s+AirFlow\s+System\b"
     r"|\bMulti\s+AirFlow\b"
-    r"|\bModo\s+Inteligente\b",
+    r"|\bModo\s+Inteligente\b"
+    r"|\bSmart\s+Mode\b",
     flags=re.IGNORECASE
 )
 
+PH_PREFIX = "ZXQPROT"
+PH_SUFFIX = "QXZ"
 
 # ─────────── UTILIDADES DE TOKENS ───────────
 
 def base_token(token: str) -> str:
     return token.strip(".,;:()\"'")
-
 
 def reemplazar_base_token(token: str, nuevo: str) -> str:
     base = base_token(token)
@@ -186,29 +387,17 @@ def reemplazar_base_token(token: str, nuevo: str) -> str:
         return token
     return token.replace(base, nuevo, 1)
 
-
 def siguiente_token_base(tokens: list, idx: int) -> str:
     if idx + 1 >= len(tokens):
         return ""
     return base_token(tokens[idx + 1])
-
 
 def anterior_token_base(tokens: list, idx: int) -> str:
     if idx - 1 < 0:
         return ""
     return base_token(tokens[idx - 1])
 
-
 def es_letra_modelo_una_letra(tokens: list, idx: int) -> bool:
-    """
-    Detecta letras de modelo o clase como:
-    - Dark E, 409 L
-    - White Glass C, 409 L
-    - Clase C
-
-    Evita que 'E' se convierta en 'e' aunque 'e' sea conjunción en español.
-    """
-
     actual = base_token(tokens[idx])
 
     if len(actual) != 1 or not actual.isalpha():
@@ -219,20 +408,94 @@ def es_letra_modelo_una_letra(tokens: list, idx: int) -> bool:
 
     previo_low = previo.lower()
 
-    # Clase energética: Clase C, Classe C, Klasse C, etc.
     if previo_low in {"clase", "classe", "class", "klasse"}:
         return True
 
-    # Modelo de una letra seguido de número: E, 409 / C, 409
     if any(ch.isdigit() for ch in siguiente):
         return True
 
-    # Modelo de una letra cerca de una referencia numérica
     if any(ch.isdigit() for ch in previo):
         return True
 
     return False
 
+def bloque_parece_modelo(bloque: str) -> bool:
+    if not bloque:
+        return False
+
+    palabras = {base_token(p).lower() for p in bloque.split()}
+
+    claves_modelo = {
+        "cecotec",
+        "bolero",
+        "coolmarket",
+        "minicooling",
+        "combi",
+        "nofrost",
+        "totalnofrost",
+        "inverter",
+        "fresh",
+        "flex",
+        "green",
+        "hub",
+        "airflow",
+        "multi",
+    }
+
+    if palabras.intersection(claves_modelo):
+        return True
+
+    if re.search(r"\b\d{2,4}\b", bloque):
+        return True
+
+    if re.search(r"\b[A-Z]\s*,\s*\d", bloque):
+        return True
+
+    return False
+
+def reparar_modelos_traducidos(texto: str, lang: str) -> str:
+    if not texto or lang not in POST_TRADUCCION_MODELO:
+        return texto
+
+    mapping = POST_TRADUCCION_MODELO[lang]
+
+    if not mapping:
+        return texto
+
+    partes = re.split(r"(,\s*)", texto)
+
+    def reparar_bloque(bloque: str) -> str:
+        tokens = bloque.split()
+        out = []
+
+        for tok in tokens:
+            base = base_token(tok)
+            low = base.lower()
+
+            if low in mapping:
+                out.append(reemplazar_base_token(tok, mapping[low]))
+            else:
+                out.append(tok)
+
+        return " ".join(out)
+
+    for i in range(0, len(partes), 2):
+        bloque = partes[i]
+
+        if not bloque.strip():
+            continue
+
+        es_primer_bloque = i == 0
+
+        if es_primer_bloque or bloque_parece_modelo(bloque):
+            partes[i] = reparar_bloque(bloque)
+
+    t = "".join(partes)
+    t = re.sub(r"\s+", " ", t).strip()
+    t = re.sub(r"\s+([.,])", r"\1", t)
+    t = re.sub(r",\s*,", ",", t)
+
+    return t.strip(" ,.")
 
 # ─────────── LIMPIEZA Y NORMALIZACIÓN ───────────
 
@@ -267,20 +530,7 @@ def limpiar(texto: str, lang: str) -> str:
 
     return t.strip(" ,.")
 
-
 def normalizar_puntos_separadores(texto: str) -> str:
-    """
-    Cambia puntos separadores por comas.
-
-    Ejemplos:
-    - Capri Black. Funciona a 12V -> Capri Black, Funciona a 12V
-    - Dark E. 409 L -> Dark E, 409 L
-    - White Glass C. 409 L -> White Glass C, 409 L
-
-    No cambia puntos decimales:
-    - 4.5 L se conserva como 4.5 L
-    """
-
     if not texto:
         return ""
 
@@ -294,7 +544,6 @@ def normalizar_puntos_separadores(texto: str) -> str:
             prev_char = texto[i - 1] if i > 0 else ""
             next_char_direct = texto[i + 1] if i + 1 < len(texto) else ""
 
-            # No convertir puntos decimales: 4.5
             if prev_char.isdigit() and next_char_direct.isdigit():
                 out.append(ch)
                 i += 1
@@ -330,50 +579,28 @@ def normalizar_puntos_separadores(texto: str) -> str:
 
     return t.strip(" ,.")
 
-
 def normalizar_semantica(texto: str, lang: str) -> str:
-    """
-    Compacta solo lo que no cambia el sentido.
-
-    Sí:
-    - 409 Litros -> 409 L
-    - 12 V -> 12V
-    - Rango de 7 a 50 Grados -> 7-50 ºC
-    - Capri Black. Funciona -> Capri Black, Funciona
-    - Dark E. 409 L -> Dark E, 409 L
-    - Altura 184,6 cm -> Alto 184,6 cm
-
-    No:
-    - Funciona a 12V y 220V -> 12V y 220V
-    """
-
     if not texto:
         return ""
 
     t = texto
 
-    # Puntos separadores a comas, incluidos modelos de una letra:
-    # E. 409 L -> E, 409 L
     t = normalizar_puntos_separadores(t)
 
-    # Corrección habitual en traducciones tipo "Mini - Réfrigérateur"
     t = re.sub(
-        r"\bMini\s*-\s*(Réfrigérateur|Refrigerador|Frigorífico|Frigorifero|Kühlschrank)\b",
+        r"\bMini\s*-\s*(Réfrigérateur|Refrigerador|Frigorífico|Frigorifero|Kühlschrank|Refrigerator|Fridge)\b",
         r"Mini \1",
         t,
         flags=re.IGNORECASE
     )
 
-    # 409 Litros / 409 litres / 409 liter / 409 litri -> 409 L
     t = re.sub(
-        r"\b(\d+(?:[,.]\d+)?)\s*(litros?|litres?|liter|litri)\b\.?",
+        r"\b(\d+(?:[,.]\d+)?)\s*(litros?|litres?|liter|litri|liters?)\b\.?",
         r"\1 L",
         t,
         flags=re.IGNORECASE
     )
 
-    # MiniCooling 4 L -> MiniCooling 4L
-    # Solo une cantidades pequeñas para evitar 409 L -> 409L.
     t = re.sub(
         r"\b(\d{1,2})\s+L\b",
         r"\1L",
@@ -381,7 +608,6 @@ def normalizar_semantica(texto: str, lang: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # 12 V -> 12V, pero NO elimina "Funciona a"
     t = re.sub(
         r"\b(\d+)\s*V\b",
         r"\1V",
@@ -389,7 +615,6 @@ def normalizar_semantica(texto: str, lang: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # Rango de 7 a 50 Grados -> 7-50 ºC
     t = re.sub(
         r"\b(?:rango|plage|gamme|intervallo|bereich|range)"
         r"(?:\s+(?:de|da|von|from))?\s+"
@@ -401,10 +626,7 @@ def normalizar_semantica(texto: str, lang: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # Dimensiones:
-    # Altura 184,6 cm -> Alto 184,6 cm
-    # Ancho 59,5 cm -> Ancho 59,5 cm
-    # Profundidad 65 cm -> Profundo 65 cm
+    # Dimensiones en español
     t = re.sub(
         r"\bAltura\s+(\d+(?:[,.]\d+)?\s*cm)\b",
         r"Alto \1",
@@ -426,20 +648,35 @@ def normalizar_semantica(texto: str, lang: str) -> str:
         flags=re.IGNORECASE
     )
 
-    # Limpieza final
+    # Dimensiones en inglés
+    t = re.sub(
+        r"\bHeight\s+(\d+(?:[,.]\d+)?\s*cm)\b",
+        r"High \1",
+        t,
+        flags=re.IGNORECASE
+    )
+
+    t = re.sub(
+        r"\bWidth\s+(\d+(?:[,.]\d+)?\s*cm)\b",
+        r"Wide \1",
+        t,
+        flags=re.IGNORECASE
+    )
+
+    t = re.sub(
+        r"\bDepth\s+(\d+(?:[,.]\d+)?\s*cm)\b",
+        r"Deep \1",
+        t,
+        flags=re.IGNORECASE
+    )
+
     t = re.sub(r"\s+", " ", t).strip()
     t = re.sub(r"\s+([.,])", r"\1", t)
     t = re.sub(r",\s*,", ",", t)
 
     return t.strip(" ,.")
 
-
 def reducir_si_no_cabe(texto: str, limite: int, lang: str) -> str:
-    """
-    Reducciones conservadoras para que el título quepa.
-    Solo elimina redundancias claras.
-    """
-
     t = texto
 
     if len(t) <= limite:
@@ -451,6 +688,8 @@ def reducir_si_no_cabe(texto: str, limite: int, lang: str) -> str:
         (r"\bFrigorifero Combinato\s+(?=.*\bCombi\b)", "Frigorifero "),
         (r"\bKühl\s*-\s*Gefrierkombination\s+(?=.*\bCombi\b)", "Kühlschrank "),
         (r"\bKühlgefrierkombination\s+(?=.*\bCombi\b)", "Kühlschrank "),
+        (r"\bCombi\s+Refrigerator\s+(?=.*\bCombi\b)", "Refrigerator "),
+        (r"\bCombined\s+Refrigerator\s+(?=.*\bCombi\b)", "Refrigerator "),
     ]
 
     for patron, reemplazo in reglas:
@@ -460,7 +699,6 @@ def reducir_si_no_cabe(texto: str, limite: int, lang: str) -> str:
         t = re.sub(r"\s+", " ", t).strip(" ,.")
 
     return t
-
 
 def aplicar_casing_fijo(palabra: str) -> str:
     base = base_token(palabra)
@@ -474,16 +712,7 @@ def aplicar_casing_fijo(palabra: str) -> str:
 
     return reemplazar_base_token(palabra, CASING_FIJO[low])
 
-
 def capitalizar(texto: str, lang: str) -> str:
-    """
-    Capitalización con protección de:
-    - marcas/modelos
-    - unidades
-    - letras de modelo de una sola letra: E, C, etc.
-    - clases energéticas: Clase C
-    """
-
     if not texto:
         return ""
 
@@ -499,39 +728,30 @@ def capitalizar(texto: str, lang: str) -> str:
             out.append(w)
             continue
 
-        # 1. Casing comercial/técnico fijo
         fijo = aplicar_casing_fijo(w)
         if fijo != w:
             out.append(fijo)
             continue
 
-        # 2. Letras de modelo/clase de una sola letra:
-        # Dark E, 409 L / White Glass C, 409 L / Clase C
         if es_letra_modelo_una_letra(tokens, idx):
             out.append(reemplazar_base_token(w, base.upper()))
             continue
 
-        # 3. Unidades protegidas
         if low in UNIDADES_PROTEGIDAS:
             out.append(w)
             continue
 
-        # 4. Siglas o tokens con números
         if base.isupper() or any(c.isdigit() for c in base):
             out.append(w)
             continue
 
-        # 5. Palabras menores
-        # Importante: una 'E' de modelo no llega aquí porque queda protegida arriba.
         if idx != 0 and low in menores:
             out.append(reemplazar_base_token(w, low))
             continue
 
-        # 6. Capitalización normal
         out.append(reemplazar_base_token(w, base[:1].upper() + base[1:]))
 
     return " ".join(out)
-
 
 # ─────────── TRADUCCIÓN CON PROTECCIÓN DE MARCA/MODELO ───────────
 
@@ -544,13 +764,17 @@ def separar_marca_inicial(texto: str):
 
     return " ".join(prefijo), " ".join(palabras)
 
+def crear_placeholder(c: int) -> str:
+    return f"{PH_PREFIX}{c:04d}{PH_SUFFIX}"
 
 def proteger(texto: str):
     mapa = {}
     nuevos = []
     c = 0
 
-    for tok in texto.split():
+    tokens = texto.split()
+
+    for idx, tok in enumerate(tokens):
         base = base_token(tok)
         base_low = base.lower()
 
@@ -559,10 +783,11 @@ def proteger(texto: str):
             or base_low in UNIDADES_PROTEGIDAS
             or base.isupper()
             or any(ch.isdigit() for ch in base)
+            or es_letra_modelo_una_letra(tokens, idx)
         )
 
         if debe_proteger:
-            ph = f"__NT{c}__"
+            ph = crear_placeholder(c)
             mapa[ph] = tok
             nuevos.append(ph)
             c += 1
@@ -571,12 +796,11 @@ def proteger(texto: str):
 
     return " ".join(nuevos), mapa
 
-
 def restaurar(texto: str, mapa: dict) -> str:
     for ph, original in mapa.items():
         texto = re.sub(re.escape(ph), original, texto, flags=re.IGNORECASE)
-    return texto
 
+    return texto
 
 @st.cache_data(show_spinner=False)
 def _traducir(texto: str, origen: str, destino: str) -> str:
@@ -584,7 +808,6 @@ def _traducir(texto: str, origen: str, destino: str) -> str:
         return GoogleTranslator(source=origen, target=destino).translate(texto)
     except Exception:
         return texto
-
 
 def traducir_protegido(texto: str, origen: str, destino: str) -> str:
     if not texto or origen == destino:
@@ -596,17 +819,13 @@ def traducir_protegido(texto: str, origen: str, destino: str) -> str:
     traducido = _traducir(resto_prot, origen, destino)
     traducido = restaurar(traducido, mapa)
 
-    return (prefijo + " " + traducido).strip() if prefijo else traducido
+    traducido = reparar_modelos_traducidos(traducido, destino)
 
+    return (prefijo + " " + traducido).strip() if prefijo else traducido
 
 # ─────────── DIVISIÓN Y CORTE ───────────
 
 def dividir_bloques_semanticos(titulo: str):
-    """
-    Divide por comas.
-    Los puntos separadores ya se convierten antes a comas.
-    """
-
     if not titulo:
         return []
 
@@ -622,12 +841,7 @@ def dividir_bloques_semanticos(titulo: str):
 
     return bloques
 
-
 def cola_incompleta(texto: str, lang: str) -> str:
-    """
-    Evita que el título termine en conectores, preposiciones o tokens colgados.
-    """
-
     if not texto:
         return ""
 
@@ -645,13 +859,7 @@ def cola_incompleta(texto: str, lang: str) -> str:
 
     return " ".join(palabras).strip(" ,.")
 
-
 def cortar_palabras(texto: str, limite: int, lang: str):
-    """
-    Corta por palabras, pero evita cortar dentro de frases críticas como:
-    'Funciona a 12V y 220V'.
-    """
-
     palabras = texto.split()
     part = ""
     i = 0
@@ -679,18 +887,10 @@ def cortar_palabras(texto: str, limite: int, lang: str):
 
     return part, resto
 
-
 def unir_bloque(part: str, bloque: str) -> str:
     return f"{part}, {bloque}" if part else bloque
 
-
 def _rellenar_secuencial(part: str, bloques: list, limite: int, lang: str):
-    """
-    TÍTULO:
-    Añade bloques en orden.
-    Si el primer bloque que toca no cabe, se detiene.
-    """
-
     restantes = []
     parar = False
 
@@ -712,14 +912,7 @@ def _rellenar_secuencial(part: str, bloques: list, limite: int, lang: str):
 
     return part.strip(" ,."), [b for b in restantes if b.strip(" ,.")]
 
-
 def _rellenar(part: str, bloques: list, limite: int, lang: str):
-    """
-    HIGHLIGHT:
-    Añade todos los bloques que quepan.
-    Puede saltar bloques grandes para aprovechar espacio.
-    """
-
     restantes = []
 
     for b in bloques:
@@ -733,7 +926,6 @@ def _rellenar(part: str, bloques: list, limite: int, lang: str):
             restantes.append(b_norm)
 
     return part.strip(" ,."), [b for b in restantes if b.strip(" ,.")]
-
 
 # ─────────── RELLENO INTELIGENTE DEL TÍTULO ───────────
 
@@ -764,12 +956,7 @@ def es_relleno_valido_titulo(fragmento: str) -> bool:
 
     return False
 
-
 def candidatos_relleno_desde_bloque(bloque: str, lang: str):
-    """
-    Extrae candidatos breves y relevantes de un bloque.
-    """
-
     b = normalizar_semantica(bloque, lang).strip(" ,.")
     candidatos = []
 
@@ -780,42 +967,29 @@ def candidatos_relleno_desde_bloque(bloque: str, lang: str):
         if valor and valor not in candidatos and es_relleno_valido_titulo(valor):
             candidatos.append(valor)
 
-    # Bloque completo si es corto y relevante
     add(b)
 
-    # Frases completas de voltaje
     for m in PATRON_VOLT_MULTIPLE.finditer(b):
         add(m.group(0))
 
-    # Temperatura
     for m in PATRON_TEMP.finditer(b):
         add(m.group(0))
 
-    # Clase energética
     for m in PATRON_CLASE.finditer(b):
         add(m.group(0))
 
-    # Tecnologías cortas
     for m in PATRON_TECNOLOGIA_CORTA.finditer(b):
         add(m.group(0))
 
-    # Dimensiones
     for m in PATRON_DIMENSION.finditer(b):
         add(m.group(0))
 
-    # Litros
     for m in PATRON_LITROS.finditer(b):
         add(m.group(0))
 
     return candidatos
 
-
 def quitar_fragmento_de_bloque(bloque: str, fragmento: str) -> str:
-    """
-    Elimina del bloque el fragmento que se ha subido al título,
-    para evitar duplicados en highlight/sobrante.
-    """
-
     b = bloque.strip(" ,.")
     f = fragmento.strip(" ,.")
 
@@ -833,13 +1007,7 @@ def quitar_fragmento_de_bloque(bloque: str, fragmento: str) -> str:
 
     return b2
 
-
 def _rellenar_oportunista_titulo(part: str, bloques: list, limite: int, lang: str):
-    """
-    Si el título queda corto, busca en los bloques restantes una especificación breve
-    que quepa dentro de los 75 caracteres.
-    """
-
     if not part:
         return part, bloques
 
@@ -880,7 +1048,6 @@ def _rellenar_oportunista_titulo(part: str, bloques: list, limite: int, lang: st
 
     return part.strip(" ,."), bloques_actuales
 
-
 def dividir(titulo: str, lang: str):
     bloques = dividir_bloques_semanticos(titulo)
 
@@ -897,7 +1064,6 @@ def dividir(titulo: str, lang: str):
         titulo_part, sobra = cortar_palabras(primer_bloque, MAX_TITULO, lang)
         resto = ([sobra] if sobra else []) + bloques[1:]
 
-    # Relleno secuencial normal
     titulo_part, resto = _rellenar_secuencial(
         titulo_part,
         resto,
@@ -905,7 +1071,6 @@ def dividir(titulo: str, lang: str):
         lang
     )
 
-    # Relleno oportunista con specs breves
     titulo_part, resto = _rellenar_oportunista_titulo(
         titulo_part,
         resto,
@@ -913,7 +1078,6 @@ def dividir(titulo: str, lang: str):
         lang
     )
 
-    # Highlight
     highlight_part, resto = _rellenar(
         "",
         resto,
@@ -943,7 +1107,6 @@ def dividir(titulo: str, lang: str):
 
     return titulo_part, highlight_part, sobrante
 
-
 # ─────────── PROCESADO POR IDIOMA ───────────
 
 def procesar_idioma(texto_origen: str, lang_origen: str, lang_salida: str):
@@ -953,12 +1116,17 @@ def procesar_idioma(texto_origen: str, lang_origen: str, lang_salida: str):
     if lang_salida != lang_origen:
         base = traducir_protegido(base, lang_origen, lang_salida)
         base = limpiar(base, lang_salida)
+        base = reparar_modelos_traducidos(base, lang_salida)
         base = normalizar_semantica(base, lang_salida)
 
     base = capitalizar(base, lang_salida)
     base = normalizar_semantica(base, lang_salida)
 
     titulo, highlight, sobrante = dividir(base, lang_salida)
+
+    titulo = reparar_modelos_traducidos(titulo, lang_salida)
+    highlight = reparar_modelos_traducidos(highlight, lang_salida)
+    sobrante = reparar_modelos_traducidos(sobrante, lang_salida)
 
     titulo = capitalizar(titulo, lang_salida)
     highlight = capitalizar(highlight, lang_salida)
@@ -975,7 +1143,6 @@ def procesar_idioma(texto_origen: str, lang_origen: str, lang_salida: str):
         f"highlight_incompleto_{suf}": "SÍ" if sobrante else "",
         f"revisar_{suf}": "SÍ" if sobrante else "",
     }
-
 
 # ─────────── INTERFAZ STREAMLIT ───────────
 
@@ -1011,12 +1178,16 @@ if lang_in == "es":
     if modo == "Optimizar y además traducir":
         seleccion = st.multiselect(
             "Traducir a:",
-            ["Francés (FR)", "Italiano (IT)", "Alemán (DE)"]
+            [
+                "Francés (FR)",
+                "Italiano (IT)",
+                "Alemán (DE)",
+                "Inglés (EN)",
+            ]
         )
         destinos = ["es"] + [IDIOMAS[s] for s in seleccion]
 else:
     st.info(f"Se optimizará manteniendo el idioma de salida en {idioma_in}.")
-
 
 # ─────────── TEST MANUAL OPCIONAL ───────────
 
@@ -1045,7 +1216,6 @@ with st.expander("Probar un título manualmente"):
                 pd.DataFrame(filas_prueba),
                 use_container_width=True
             )
-
 
 # ─────────── PROCESADO DE ARCHIVO ───────────
 
